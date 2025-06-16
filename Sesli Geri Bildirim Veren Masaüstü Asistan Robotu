@@ -1,0 +1,122 @@
+#include <Wire.h>
+#include <RTClib.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+RTC_DS3231 rtc;
+
+const int buzzerPin = 13;
+const int isdPlayPin = 12;
+
+const int maxAlarms = 10;
+int alarmHours[maxAlarms];
+int alarmMinutes[maxAlarms];
+bool alarmTriggered[maxAlarms];
+int alarmCount = 0;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(isdPlayPin, OUTPUT);
+  digitalWrite(buzzerPin, LOW);
+  digitalWrite(isdPlayPin, LOW);
+
+  if (!rtc.begin()) {
+    Serial.println("RTC bulunamadi!");
+    while (1);
+  }
+
+  if (rtc.lostPower()) {
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
+
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED baslatilamadi!");
+    while (1);
+  }
+
+  display.clearDisplay();
+  display.display();
+
+  Serial.println("Alarm sistemi hazir. HH:MM formatinda alarm girin:");
+}
+
+void loop() {
+  DateTime now = rtc.now();
+
+  // Yeni alarm girisi varsa oku
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    if (alarmCount < maxAlarms && input.length() >= 5) {
+      int hour = input.substring(0, 2).toInt();
+      int minute = input.substring(3, 5).toInt();
+
+      if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+        alarmHours[alarmCount] = hour;
+        alarmMinutes[alarmCount] = minute;
+        alarmTriggered[alarmCount] = false;
+        alarmCount++;
+
+        Serial.print("✅ Yeni alarm eklendi: ");
+        Serial.print(hour);
+        Serial.print(":");
+        if (minute < 10) Serial.print("0");
+        Serial.println(minute);
+      } else {
+        Serial.println("❌ Hatali saat formatı. Ornek: 15:30");
+      }
+    } else {
+      Serial.println("❗ Alarm sayisi maksimuma ulasti ya da format hatali.");
+    }
+  }
+
+  // Tüm alarmları kontrol et
+  for (int i = 0; i < alarmCount; i++) {
+    if (!alarmTriggered[i] && now.hour() == alarmHours[i] && now.minute() == alarmMinutes[i]) {
+      alarmTriggered[i] = true;
+
+      // OLED'de saati göster
+      display.clearDisplay();
+      display.setTextSize(2);
+      display.setTextColor(SSD1306_WHITE);
+      display.setCursor(20, 20);
+      if (now.hour() < 10) display.print("0");
+      display.print(now.hour());
+      display.print(":");
+      if (now.minute() < 10) display.print("0");
+      display.print(now.minute());
+      display.display();
+
+      // Alarm sesleri
+      playBuzzer();
+      delay(1000);
+      playISD1820();
+
+      display.clearDisplay();
+      display.display();
+    }
+  }
+
+  delay(1000);
+}
+
+void playBuzzer() {
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(buzzerPin, HIGH);
+    delay(300);
+    digitalWrite(buzzerPin, LOW);
+    delay(300);
+  }
+}
+
+void playISD1820() {
+  digitalWrite(isdPlayPin, HIGH);
+  delay(3000);
+  digitalWrite(isdPlayPin, LOW);
+}
+
