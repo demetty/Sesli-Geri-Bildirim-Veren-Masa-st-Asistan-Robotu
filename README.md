@@ -1,4 +1,4 @@
-# Sesli-Geri-Bildirim-Veren-Masa-st-Asistan-Robotu
+# Sesli-Geri-Bildirim-Veren-Masaüstü-Asistan-Robotu
 🔧 Proje Tanımı
 
 Bu proje, ESP32 mikrodenetleyici kullanılarak geliştirilen dinamik bir alarm sistemidir. Sistem; gerçek zamanlı saat takibi, OLED ekran ile görsel bildirim, buzzer ve ISD1820 ses modülü ile sesli uyarı verme yeteneklerine sahiptir. Kullanıcı, çalışma sırasında istediği kadar alarm kurabilmekte ve sistem her alarm için tek seferlik sesli/görsel bildirim sağlamaktadır.
